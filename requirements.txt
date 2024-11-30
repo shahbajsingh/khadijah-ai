@@ -1,0 +1,4 @@
+pyttsx3==2.90
+SpeechRecognition>=3.8.1
+keyboard==0.13.5
+python-decouple==3.8
