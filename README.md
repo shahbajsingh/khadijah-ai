@@ -26,6 +26,7 @@ Khadijah is a voice-controlled digital assistant designed to perform various tas
   - `SpeechRecognition`: To recognize and process user voice commands.
   - `keyboard`: To add hotkey functionality for starting and pausing the assistant.
   - `python-decouple`: For managing user and bot configuration variables.
+  - `smtplib`: For securely sending email messages over SMTP.
 
 - **macOS-Specific Utilities**:
   - `osascript`: Used to execute AppleScript for closing applications.
@@ -60,6 +61,12 @@ Create a `.env` file in the project directory with the following content:
 ```env
 USER=YourName
 ```
+Navigate to `online.py` and enter email and passkey credentials to send emails.
+```online
+EMAIL=YourEmailAddress
+PASSWORD=YourPasskey
+```
+
 
 ### Usage
 
@@ -73,6 +80,8 @@ $ python khadijah-ai.py
 
 * Say `open [application]` to open an application
 * Say `quit [application]` to close an application
+* Say `search google`, `search wikipedia`, or `search youtube` to browse web related content
+* Say `send an email` to send emails
 * Example:
     * `open terminal`
     * `quit safari`
