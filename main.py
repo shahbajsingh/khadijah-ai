@@ -1,13 +1,14 @@
 import pyttsx3
 from decouple import config
 from datetime import datetime
-from conv import filler, thanks
+from conv import filler, thanks, how_are_you, thanks_cmd, stop_cmd, how_are_you_cmd, wiki_cmd, google_cmd, youtube_cmd, email_cmd, news_cmd, weather_cmd
 import speech_recognition as sr
 from random import choice
 import keyboard
 import os
+import requests
 import subprocess as sp
-from online import find_my_ip, search_wikipedia, search_google, youtube, send_email
+from online import find_my_ip, search_wikipedia, search_google, youtube, send_email, get_news, get_weather
 
 engine = pyttsx3.init()  # pyttsx3.init('sapi5')
 engine.setProperty('volume', 1.5)
@@ -123,39 +124,34 @@ def close_app(app_name):
 
 
 def parse_query(query):
-    if 'how are you' in query:
-        speak("I am absolutely fine! What about you?")
+    if any(cmd in query for cmd in how_are_you_cmd):  # HOW ARE YOU
+        speak(choice(how_are_you))
 
-    elif 'open' in query:
-        app_name = query.split('open')[-1].strip()
-        app_name = APP_MAP.get(app_name, app_name.title())
-        open_app(app_name)
-
-    elif 'ip address' in query:
+    elif 'ip address' in query:  # CHECK IP ADDR
         ip_address = find_my_ip()
         speak(f'Your IP address is {ip_address}')
 
-    elif 'search wikipedia' in query:
+    elif any(cmd in query for cmd in wiki_cmd):  # SEARCH WIKIPEDIA
         speak('What do you want to search on Wikipedia?')
         query = take_command().lower()
         result = search_wikipedia(query)
         speak(result)
         print(result)
 
-    elif 'search google' in query:
+    elif any(cmd in query for cmd in google_cmd):  # SEARCH GOOGLE
         speak('What do you want to search on Google?')
         query = take_command().lower()
         search_google(query)
 
-    elif 'youtube' in query:
+    elif any(cmd in query for cmd in youtube_cmd):  # SEARCH YOUTUBE
         speak('What do you want to play on YouTube?')
         video = take_command().lower()
         youtube(video)
 
-    elif 'send an email' in query:
+    elif any(cmd in query for cmd in email_cmd):  # COMPOSE EMAIL
         speak('Okay, to whom do you want to send it? Input in terminal.')
         remove_hotkeys()
-        receiver_addr = input("Email address: ")  # TERMINAL
+        receiver_addr = input("Email address: ")  # TERMINAL INPUT
         add_hotkeys()
         speak('What should be the subject?')
         subject = take_command().capitalize()
@@ -167,15 +163,36 @@ def parse_query(query):
         else:
             speak('Something went wrong.')
 
-    elif 'quit' in query:
+    elif any(cmd in query for cmd in news_cmd):  # READ NEWS
+        headlines = get_news()
+        if headlines:
+            speak("Okay, here are the top news headlines.")
+            [speak(headline) for headline in headlines]
+        print(*get_news(), sep='\n')
+    
+    elif any(cmd in query for cmd in weather_cmd): # TO-DO: READ WEATHER (BROKEN)
+        ip_address = find_my_ip()
+        city = input("Enter city ") # requests.get(f'https://ipapi.com/{ip_address}/city').text
+        speak(f"Okay, here's the weather for {city}")
+        forecast, temperature, feels_like = get_weather(city) # RETURNS KELVIN
+        speak(f'The temperature is {temperature}, but it feels like {feels_like}')
+        speak(f'The forecast is {forecast}')
+        print(f'Forecast: {forecast}\nTemperature: {temperature}\nFeels Like:{feels_like}')
+
+    elif 'open' in query:  # OPEN APPLICATION
+        app_name = query.split('open')[-1].strip()
+        app_name = APP_MAP.get(app_name, app_name.title())
+        open_app(app_name)
+
+    elif 'quit' in query:  # QUIT APPLICATION
         app_name = query.split('quit')[-1].strip()
         app_name = APP_MAP.get(app_name, app_name.title())
         close_app(app_name)
 
-    elif 'thanks' in query or 'thank you' in query:
+    elif any(cmd in query for cmd in thanks_cmd):  # THANK YOU
         speak(choice(thanks))
 
-    elif 'stop' in query or 'exit' in query:
+    elif any(cmd in query for cmd in stop_cmd):  # EXIT KHADIJA
         speak(f"Okay, have a great day {USER}!")
         exit()
 

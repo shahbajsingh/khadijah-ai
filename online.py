@@ -4,9 +4,11 @@ import pywhatkit as kit
 from email.message import EmailMessage
 import smtplib
 from decouple import config
+from const import NEWS_API_KEY, WEATHER_API_KEY
 
 EMAIL = ""
 PASSWORD = ""
+
 
 def find_my_ip():
     response = requests.get('https://api.ipify.org?format=json')
@@ -33,6 +35,7 @@ def search_google(query):
 def youtube(video):
     kit.playonyt(video)
 
+
 def send_email(receiver_addr, subject, message):
     try:
         email = EmailMessage()
@@ -40,14 +43,38 @@ def send_email(receiver_addr, subject, message):
         email['To'] = receiver_addr
         email['Subject'] = subject
         email.set_content(message + '\n\nSent with Khadija AI')
-        
+
         smtp = smtplib.SMTP("smtp.gmail.com", 587)
         smtp.starttls()
         smtp.login(EMAIL, PASSWORD)
         smtp.send_message(email)
         smtp.close()
-        
+
         return True
     except Exception as e:
         print(e)
         return False
+
+
+def get_news():
+    headlines = []
+    response = requests.get(
+        f"https://newsapi.org/v2/top-headlines?country=us&category=general&apiKey={NEWS_API_KEY}"
+    )
+    result = response.json()
+    articles = result.get('articles', [])
+
+    for article in articles:
+        headlines.append(article.get("title"))
+
+    return headlines[:5]
+
+def get_weather(city):
+    response = requests.get(
+        f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}'
+    )
+    result = response.json()
+    forecast = result['weather'][0]['main']
+    temperature = result['main']['temp']
+    feels_like = result['main']['feels_like']
+    return forecast, f'{temperature}ºF', f'{feels_like}ºF'

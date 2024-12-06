@@ -62,7 +62,7 @@ Create a `.env` file in the project directory with the following content:
 USER=YourName
 ```
 Navigate to `online.py` and enter email and passkey credentials to send emails.
-```online
+```env
 EMAIL=YourEmailAddress
 PASSWORD=YourPasskey
 ```
