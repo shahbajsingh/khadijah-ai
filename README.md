@@ -82,6 +82,8 @@ $ python khadijah-ai.py
 * Say `quit [application]` to close an application
 * Say `search google`, `search wikipedia`, or `search youtube` to browse web related content
 * Say `send an email` to send emails
+* Say `read me the news` to get the top headlines in US news
+* Say `give me the forecast` to get the weather forecast for a city
 * Example:
     * `open terminal`
     * `quit safari`

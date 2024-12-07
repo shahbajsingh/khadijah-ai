@@ -11,9 +11,13 @@ PASSWORD = ""
 
 
 def find_my_ip():
-    response = requests.get('https://api.ipify.org?format=json')
-    ip_address = response.json()
-    return ip_address['ip']
+    try:
+        response = requests.get('https://api.ipify.org?format=json')
+        response.raise_for_status()
+        ip_address = response.json()
+        return ip_address['ip']
+    except requests.exceptions.RequestException:
+        return None
 
 
 def search_wikipedia(query):
@@ -58,23 +62,37 @@ def send_email(receiver_addr, subject, message):
 
 def get_news():
     headlines = []
-    response = requests.get(
-        f"https://newsapi.org/v2/top-headlines?country=us&category=general&apiKey={NEWS_API_KEY}"
-    )
-    result = response.json()
-    articles = result.get('articles', [])
+    try:
+        response = requests.get(
+            f"https://newsapi.org/v2/top-headlines?country=us&category=general&apiKey={NEWS_API_KEY}"
+        )
+        response.raise_for_status()
+        result = response.json()
+        articles = result.get('articles', [])
 
-    for article in articles:
-        headlines.append(article.get("title"))
+        for article in articles:
+            headlines.append(article.get("title"))
 
-    return headlines[:5]
+        return headlines[:5]
+    except requests.exceptions.RequestException:
+        return []
+
 
 def get_weather(city):
-    response = requests.get(
-        f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}'
-    )
-    result = response.json()
-    forecast = result['weather'][0]['main']
-    temperature = result['main']['temp']
-    feels_like = result['main']['feels_like']
-    return forecast, f'{temperature}ºF', f'{feels_like}ºF'
+    try:
+        response = requests.get(
+            f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}'
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        forecast = result['weather'][0]['main']
+        temp_k = result['main']['temp']
+        feels_k = result['main']['feels_like']
+
+        temp_f = round((temp_k - 273.15) * 9/5 + 32)
+        feels_f = round((feels_k - 273.15) * 9/5 + 32)
+
+        return forecast, f'{temp_f}ºF', f'{feels_f}ºF'
+    except requests.exceptions.RequestException:
+        return None, None, None

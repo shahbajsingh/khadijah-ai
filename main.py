@@ -39,8 +39,12 @@ APP_MAP = {
 
 
 def test_voices():
+    i = 0
+    engine.setProperty('rate', 200)
+
     for voice in voices:
-        print(voice, voice.id)
+        print(f'{voice}, {voice.id}, index={i}')
+        i += 1
         engine.setProperty('voice', voice.id)
         engine.say("Hello, I am Khadijah, your digital assistant!")
         engine.runAndWait()
@@ -105,10 +109,10 @@ def take_command():
         print("Recognizing...")
         query = r.recognize_google(audio, language='en-us').lower()
         print(query)
-
     except Exception:
         speak("Sorry, I couldn't understand. Can you please repeat that?")
         query = 'None'
+
     return query
 
 
@@ -127,26 +131,47 @@ def parse_query(query):
     if any(cmd in query for cmd in how_are_you_cmd):  # HOW ARE YOU
         speak(choice(how_are_you))
 
-    elif 'ip address' in query:  # CHECK IP ADDR
-        ip_address = find_my_ip()
+    elif 'ip address' in query:  # CHECK IP ADDRESS
+        try:
+            ip_address = find_my_ip()
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't retrieve your IP address due to a network issue.")
+            return
+
         speak(f'Your IP address is {ip_address}')
 
     elif any(cmd in query for cmd in wiki_cmd):  # SEARCH WIKIPEDIA
         speak('What do you want to search on Wikipedia?')
         query = take_command().lower()
-        result = search_wikipedia(query)
+
+        try:
+            result = search_wikipedia(query)
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't access Wikipedia due to a network issue.")
+            return
+
         speak(result)
         print(result)
 
     elif any(cmd in query for cmd in google_cmd):  # SEARCH GOOGLE
         speak('What do you want to search on Google?')
         query = take_command().lower()
-        search_google(query)
+
+        try:
+            search_google(query)
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't perform a Google search due to a network issue.")
+            return
 
     elif any(cmd in query for cmd in youtube_cmd):  # SEARCH YOUTUBE
         speak('What do you want to play on YouTube?')
         video = take_command().lower()
-        youtube(video)
+
+        try:
+            youtube(video)
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't access YouTube due to a network issue.")
+            return
 
     elif any(cmd in query for cmd in email_cmd):  # COMPOSE EMAIL
         speak('Okay, to whom do you want to send it? Input in terminal.')
@@ -158,26 +183,65 @@ def parse_query(query):
         speak('And what do you want to say?')
         message = take_command().capitalize()
 
-        if send_email(receiver_addr, subject, message):
-            speak(f'Okay, the email has been sent to {receiver_addr}.')
-        else:
-            speak('Something went wrong.')
+        try:
+            if send_email(receiver_addr, subject, message):
+                speak(f'Okay, the email has been sent to {receiver_addr}.')
+            else:
+                speak('Something went wrong.')
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't send the email due to a network issue.")
+            return
 
     elif any(cmd in query for cmd in news_cmd):  # READ NEWS
-        headlines = get_news()
+        try:
+            headlines = get_news()
+        except requests.exceptions.RequestException:
+            speak("Sorry, I couldn't fetch the news due to a network issue.")
+            return
+
         if headlines:
             speak("Okay, here are the top news headlines.")
             [speak(headline) for headline in headlines]
         print(*get_news(), sep='\n')
-    
-    elif any(cmd in query for cmd in weather_cmd): # TO-DO: READ WEATHER (BROKEN)
-        ip_address = find_my_ip()
-        city = input("Enter city ") # requests.get(f'https://ipapi.com/{ip_address}/city').text
+
+    elif any(cmd in query for cmd in weather_cmd):  # READ WEATHER
+        capture = query.lower().split()
+        if 'in' in capture:
+            in_index = capture.index('in')
+            city_capture = capture[in_index+1:]
+            city = ' '.join(city_capture).title() if city_capture else None
+        else:
+            city = None
+
+        if not city:
+            ip_address = find_my_ip()
+            
+            try:
+                response = requests.get(f'https://ipinfo.io/{ip_address}/json')
+                response.raise_for_status()
+                data = response.json()
+                city = data.get('city', None)
+            except requests.exceptions.RequestException:
+                speak(
+                    "Sorry, I was unable to determine the weather for your location due to a network issue.")
+                return
+
+            if not city:
+                speak('Sorry, I was unable to determine your location')
+                return
+
+        try:
+            forecast, temperature, feels_like = get_weather(city)
+        except requests.exceptions.RequestException:
+            speak("Sorry, I was unable to fetch weather data due to a network issue.")
+            return
+
         speak(f"Okay, here's the weather for {city}")
-        forecast, temperature, feels_like = get_weather(city) # RETURNS KELVIN
-        speak(f'The temperature is {temperature}, but it feels like {feels_like}')
-        speak(f'The forecast is {forecast}')
-        print(f'Forecast: {forecast}\nTemperature: {temperature}\nFeels Like:{feels_like}')
+        speak(
+            f'The temperature is {temperature}, but it feels like {feels_like}')
+        speak(f'The forecast mentions {forecast}')
+        print(
+            f'Forecast: {forecast}\nTemperature: {temperature}\nFeels Like: {feels_like}')
 
     elif 'open' in query:  # OPEN APPLICATION
         app_name = query.split('open')[-1].strip()
